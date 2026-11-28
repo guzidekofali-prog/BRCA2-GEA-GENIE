@@ -14,6 +14,7 @@
 #   D12 Figures: 1 (GENIE + TCGA flow), 3 (repeats), 4 (adjusted OR panel), 5 (P80/P85,
 #       numeric OR), 6 (TCGA HRD with 42 line, N and P), 7 (TCGA patient-level oncoprint),
 #       S1 (comparison genes with 95% CI)
+# The TCGA POLE subtype is labeled HM-SNV (hypermutated single-nucleotide variant) in figures.
 # All numbers are computed in this R session.
 # =============================================================================
 while (sink.number() > 0) sink()
@@ -296,7 +297,7 @@ cat("Estimated SBS3 mutations, altered vs WT: non-MSI/POLE P =", pfm(pw2("sbs3_a
 lv2 <- mu[gene == "BRCA2" & mutationType != "Silent", .(variants = paste(proteinChange, collapse = ", "),
           types = paste(unique(sub("_Mutation|_Site", "", mutationType)), collapse = ", ")), by = sampleId]
 d9p <- merge(cl[BRCA2_any == TRUE, .(sampleId, site = fifelse(study == "stad_tcga_pan_can_atlas_2018", "Stomach", "Esophagus"),
-  subtype = fifelse(is.na(SUBTYPE), "Missing", sub("^(STAD|ESCA)_", "", SUBTYPE)), MSI_POLE = HYPER_true,
+  subtype = fifelse(is.na(SUBTYPE), "Missing", sub("^POLE$", "HM-SNV", sub("^(STAD|ESCA)_", "", SUBTYPE))), MSI_POLE = HYPER_true,
   MANTIS = round(MSI_SCORE_MANTIS, 2), TMB = round(TMB_NONSYNONYMOUS, 1), n_trunc, curated, deep_del = cna %in% -2,
   locus_LOH = locus_loh, tier, HRD = HRD_Score, SBS3 = round(mutSig3, 3), SBS3_abs = round(sbs3_abs, 1))],
   lv2, by = "sampleId", all.x = TRUE)
@@ -430,7 +431,7 @@ save_d(g5, "Figure5_sensitivity", 10, 9)
 # Figure 6: TCGA HRD with 42 line, analysed N and P values
 hd <- cl[!is.na(HRD_Score)]
 gl <- hd[, .N, by = grp]
-lvn <- setNames(paste0(gsub(" / ", "\n", gsub("MSS", "non-MSI/POLE", levels(cl$grp))), "\n(n = ", gl$N[match(levels(cl$grp), gl$grp)], ")"), levels(cl$grp))
+lvn <- setNames(paste0(gsub(" / ", "\n", gsub("MSI or POLE", "MSI or HM-SNV", gsub("MSS", "non-MSI/HM-SNV", levels(cl$grp)))), "\n(n = ", gl$N[match(levels(cl$grp), gl$grp)], ")"), levels(cl$grp))
 hd[, grpl := factor(lvn[as.character(grp)], levels = lvn)]
 pv <- function(a, b) pfm(wilcox.test(hd[grp == a, HRD_Score], hd[grp == b, HRD_Score])$p.value)
 p_mss <- pv("BRCA2-altered / MSS", "BRCA2 wild-type / MSS"); p_msi <- pv("BRCA2-altered / MSI or POLE", "BRCA2 wild-type / MSI or POLE")
@@ -444,13 +445,13 @@ g6 <- ggplot(hd, aes(grpl, HRD_Score, fill = BRCA2_any)) + geom_hline(yintercept
   annotate("text", x = 4.45, y = 44.5, label = "HRD score 42", size = 2.8, hjust = 1, colour = "grey30") +
   scale_fill_manual(values = c("grey85", pal[["red"]]), guide = "none") +
   scale_y_continuous(limits = c(0, 118), breaks = seq(0, 100, 25)) +
-  labs(x = NULL, y = "Genomic HRD score", caption = sprintf("BRCA2 x MSI/POLE interaction in a linear model adjusted for site: P = %s", pfm(pint))) +
+  labs(x = NULL, y = "Genomic HRD score", caption = sprintf("BRCA2 x MSI/HM-SNV interaction in a linear model adjusted for site: P = %s", pfm(pint))) +
   theme_bw(base_size = 10)
 save_d(g6, "Figure6_TCGA_HRD", 8, 5.5)
 
 # Figure 7: TCGA patient-level oncoprint
 op <- copy(d9p); op[, id := factor(sampleId, levels = sampleId)]
-op[, grp := factor(fifelse(MSI_POLE, "MSI or POLE", "Non-MSI/POLE"), c("MSI or POLE", "Non-MSI/POLE"))]
+op[, grp := factor(fifelse(MSI_POLE, "MSI or HM-SNV", "Non-MSI/HM-SNV"), c("MSI or HM-SNV", "Non-MSI/HM-SNV"))]
 op[, ev := fifelse(deep_del, "Deep deletion", fifelse(n_trunc > 0, "Truncating", "Non-truncating only"))]
 tiles <- rbind(op[, .(id, grp, row = "Molecular subtype", val = subtype)],
                op[, .(id, grp, row = "BRCA2 event", val = ev)],
@@ -459,7 +460,7 @@ tiles <- rbind(op[, .(id, grp, row = "Molecular subtype", val = subtype)],
                op[, .(id, grp, row = "Allelic status", val = sub("^\\d ", "", tier))],
                op[, .(id, grp, row = "HRD score 42 or higher", val = fifelse(is.na(HRD), "Not available", fifelse(HRD >= 42, "Yes", "No")))])
 tiles[, row := factor(row, rev(c("Molecular subtype", "BRCA2 event", "Curated deleterious (Knijnenburg)", "LOH at BRCA2 locus", "Allelic status", "HRD score 42 or higher")))]
-cols <- c(MSI = "#C0392B", POLE = "#E08E45", CIN = "#2C6E9B", GS = "#76A5AF", EBV = "#8E7CC3", Missing = "grey70",
+cols <- c(MSI = "#C0392B", `HM-SNV` = "#E08E45", CIN = "#2C6E9B", GS = "#76A5AF", EBV = "#8E7CC3", Missing = "grey70",
           `Deep deletion` = "#1B3A57", Truncating = "#2C6E9B", `Non-truncating only` = "#A9CCE3", Yes = "#C0392B", No = "grey88",
           `Not available` = "white", `Homozygous deletion` = "#1B3A57", `Pathogenic mutation with locus LOH` = "#C0392B",
           `Multiple truncating hits, phase unresolved` = "#E08E45", `Single truncating or curated event` = "#F2C14E",

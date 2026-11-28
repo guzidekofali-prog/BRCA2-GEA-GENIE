@@ -14,11 +14,11 @@ g6 <- ggplot(hd, aes(grpl, HRD_Score, fill = BRCA2_any)) + geom_hline(yintercept
   annotate("text", x = 4.45, y = 44.5, label = "HRD score 42", size = 2.8, hjust = 1, colour = "grey30") +
   scale_fill_manual(values = c("grey85", pal[["red"]]), guide = "none") +
   scale_y_continuous(limits = c(0, 118), breaks = seq(0, 100, 25)) +
-  labs(x = NULL, y = "Genomic HRD score", caption = sprintf("BRCA2 x MSI/POLE interaction in a linear model adjusted for site: P = %s", pfm(pint))) +
+  labs(x = NULL, y = "Genomic HRD score", caption = sprintf("BRCA2 x MSI/HM-SNV interaction in a linear model adjusted for site: P = %s", pfm(pint))) +
   theme_bw(base_size = 10)
 save_d(g6, "Figure6_TCGA_HRD", 8, 5.5)
 # Figure 7: distinct colors per row, legend in row order
-cols <- c(MSI = "#C0392B", POLE = "#F1948A", CIN = "#5D6D7E", GS = "#76D7C4", EBV = "#8E7CC3", Missing = "#D5D8DC",
+cols <- c(MSI = "#C0392B", `HM-SNV` = "#F1948A", CIN = "#5D6D7E", GS = "#76D7C4", EBV = "#8E7CC3", Missing = "#D5D8DC",
           `Deep deletion` = "#17202A", Truncating = "#2874A6", `Non-truncating only` = "#AED6F1",
           `Homozygous deletion` = "#4A235A", `Pathogenic mutation with locus LOH` = "#1E8449",
           `Multiple truncating hits, phase unresolved` = "#D68910", `Single truncating or curated event` = "#F7DC6F",
